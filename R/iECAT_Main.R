@@ -515,16 +515,20 @@ SingleVar_Score_iECAT_kernel<- function(G, Y, X, Null.internal, Null.all, Null.I
 	VARw.spa <- t(G_d.spa) %*% Sigma.spa %*% G_d.spa #new
 
 	#--- Calculate p-value ---#	
-	p.value<- pchisq(Sw.spa^2 / VARw.spa, df=1, lower.tail=FALSE)
+	p.value.Sw<- pchisq(Sw.spa^2 / VARw.spa, df=1, lower.tail=FALSE)
 	p.value.tau1<- pchisq(Score[1]^2 / Var.spa.S1, df=1, lower.tail=FALSE)
-	re<- list(c(method="iECAT", MAF.adjust=MAF.adjust, Score=Sw.spa, VAR=VARw.spa, p.value=p.value))
+	re<- list(c(method="iECAT", MAF.adjust=MAF.adjust, Score=Sw.spa, VAR=VARw.spa, p.value=p.value.Sw))
 	
 	if (method=="iECATminP") {
 		rhorhorho <- sqrt((env$a*tau.spa+1-tau.spa)*Var.spa.S1/VARw.spa)
 		if (abs(rhorhorho)<=1) {cmat <- matrix(c(1,rhorhorho,rhorhorho,1), nrow=2)} else{cmat <- matrix(c(1,sign(rhorhorho),sign(rhorhorho),1), nrow=2)}
 		Z2 <- qnorm(min(p.value, p.value.tau1)2)
-		p.value <- pmvnorm(lower=c(-Inf,-abs(Z2)), upper=c(-abs(Z2),Inf), mean=c(0,0), corr=cmat)[1] + pmvnorm(lower=c(-abs(Z2),abs(Z2)), upper=c(Inf,Inf), mean=c(0,0), corr=cmat) + pmvnorm(lower=c(abs(Z2),-Inf), upper=c(Inf,abs(Z2)), mean=c(0,0), corr=cmat)[1] + pmvnorm(lower=c(-Inf,-Inf), upper=c(abs(Z2),-abs(Z2)), mean=c(0,0), corr=cmat)[1]
-		re<- list(c(method="iECAT minP", MAF.adjust=MAF.adjust, Score=NA, VAR=NA, p.value=p.value))
+		p.value.minP <- pmvnorm(lower=c(-Inf,-abs(Z2)), upper=c(-abs(Z2),Inf), mean=c(0,0), corr=cmat)[1] + pmvnorm(lower=c(-abs(Z2),abs(Z2)), upper=c(Inf,Inf), mean=c(0,0), corr=cmat) + pmvnorm(lower=c(abs(Z2),-Inf), upper=c(Inf,abs(Z2)), mean=c(0,0), corr=cmat)[1] + pmvnorm(lower=c(-Inf,-Inf), upper=c(abs(Z2),-abs(Z2)), mean=c(0,0), corr=cmat)[1]
+		VARw.spa.minP <- sqrt(VARw.spa*Var.spa.S1)
+		tmp.sign <- sign(Score[1])*(p.value.tau1<p.value.Sw) + sign(Sw.spa)*(p.value.tau1>=p.value.Sw)
+		tmp.Sw <- sqrt(qchisq(p.value.minP, 1, ncp = 0, lower.tail = FALSE, log.p = FALSE)*VARw.spa.minP)
+		Sw.spa.minP <- tmp.sign*tmp.Sw
+		re<- list(c(method="iECAT minP", MAF.adjust=MAF.adjust, Score=Sw.spa.minP, VAR=VARw.spa.minP, p.value=p.value.minP))
 	}
 	
 	return(re)
